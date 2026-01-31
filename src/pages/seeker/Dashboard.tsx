@@ -8,9 +8,10 @@ import {
   Briefcase,
   FileText,
   Clock,
-  CheckCircle,
   ArrowRight,
   AlertCircle,
+  Sparkles,
+  Trophy,
 } from 'lucide-react';
 
 export function SeekerDashboard() {
@@ -26,64 +27,69 @@ export function SeekerDashboard() {
   const recentApplications = myApplications.slice(0, 3);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Welcome back, {user?.name}!</h1>
-        <p className="text-gray-600">Here's what's happening with your applications</p>
+    <div className="space-y-8">
+      <div className="flex items-center gap-4">
+        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-emerald-500/30">
+          {user?.name?.charAt(0) || 'U'}
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Welcome back, {user?.name}!</h1>
+          <p className="text-slate-600">Here's what's happening with your applications</p>
+        </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+        <Card hover>
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                <Briefcase className="h-6 w-6 text-blue-600" />
+              <div className="w-14 h-14 bg-gradient-to-br from-sky-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-sky-500/30">
+                <Briefcase className="h-7 w-7 text-white" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">{activeJobs}</p>
-                <p className="text-sm text-gray-500">Available Jobs</p>
+                <p className="text-3xl font-bold text-slate-900">{activeJobs}</p>
+                <p className="text-sm text-slate-500 font-medium">Available Jobs</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card hover>
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
-                <FileText className="h-6 w-6 text-indigo-600" />
+              <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                <FileText className="h-7 w-7 text-white" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">{myApplications.length}</p>
-                <p className="text-sm text-gray-500">My Applications</p>
+                <p className="text-3xl font-bold text-slate-900">{myApplications.length}</p>
+                <p className="text-sm text-slate-500 font-medium">My Applications</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card hover>
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
-                <Clock className="h-6 w-6 text-orange-600" />
+              <div className="w-14 h-14 bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg shadow-amber-500/30">
+                <Clock className="h-7 w-7 text-white" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">{pendingTasks.length}</p>
-                <p className="text-sm text-gray-500">Pending Tasks</p>
+                <p className="text-3xl font-bold text-slate-900">{pendingTasks.length}</p>
+                <p className="text-sm text-slate-500 font-medium">Pending Tasks</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card hover>
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                <CheckCircle className="h-6 w-6 text-green-600" />
+              <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                <Trophy className="h-7 w-7 text-white" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-3xl font-bold text-slate-900">
                   {myApplications.filter((a) => a.status === 'hired').length}
                 </p>
-                <p className="text-sm text-gray-500">Offers Received</p>
+                <p className="text-sm text-slate-500 font-medium">Offers Received</p>
               </div>
             </div>
           </CardContent>
@@ -92,20 +98,25 @@ export function SeekerDashboard() {
 
       {/* Pending Tasks Alert */}
       {pendingTasks.length > 0 && (
-        <Card className="border-orange-200 bg-orange-50">
-          <CardContent className="p-4">
+        <Card className="border-2 border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50">
+          <CardContent className="p-5">
             <div className="flex items-center gap-4">
-              <AlertCircle className="h-6 w-6 text-orange-600" />
+              <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
+                <AlertCircle className="h-6 w-6 text-amber-600" />
+              </div>
               <div className="flex-1">
-                <p className="font-medium text-orange-900">
+                <p className="font-bold text-amber-900">
                   You have {pendingTasks.length} pending task{pendingTasks.length > 1 ? 's' : ''}
                 </p>
-                <p className="text-sm text-orange-700">
+                <p className="text-sm text-amber-700">
                   Complete your tasks before the deadline to proceed with your application
                 </p>
               </div>
               <Link to="/dashboard/tasks">
-                <Button size="sm">View Tasks</Button>
+                <Button className="bg-amber-600 hover:bg-amber-700 shadow-lg shadow-amber-500/30">
+                  View Tasks
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
               </Link>
             </div>
           </CardContent>
@@ -116,7 +127,10 @@ export function SeekerDashboard() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Recent Applications</h2>
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-indigo-500" />
+              <h2 className="text-lg font-bold text-slate-900">Recent Applications</h2>
+            </div>
             <Link to="/dashboard/applications">
               <Button variant="ghost" size="sm">
                 View All <ArrowRight className="h-4 w-4" />
@@ -130,27 +144,42 @@ export function SeekerDashboard() {
               {recentApplications.map((app) => (
                 <div
                   key={app.id}
-                  className="p-4 border border-gray-100 rounded-lg hover:bg-gray-50"
+                  className="p-5 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-colors"
                 >
-                  <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-start justify-between mb-4">
                     <div>
-                      <h3 className="font-medium text-gray-900">{app.jobTitle}</h3>
-                      <p className="text-sm text-gray-500">{app.stackName}</p>
+                      <h3 className="font-bold text-lg text-slate-900">{app.jobTitle}</h3>
+                      <p className="text-slate-600">{app.stackName}</p>
                     </div>
                     <ApplicationPipeline status={app.status} compact />
                   </div>
-                  <p className="text-xs text-gray-400">
-                    Applied {new Date(app.appliedAt).toLocaleDateString()}
-                  </p>
+                  <div className="flex items-center gap-4 text-sm text-slate-500">
+                    <span className="flex items-center gap-1.5">
+                      <Clock className="h-4 w-4" />
+                      Applied {new Date(app.appliedAt).toLocaleDateString()}
+                    </span>
+                    {app.task && (
+                      <span className="flex items-center gap-1.5 text-indigo-600 font-medium">
+                        <FileText className="h-4 w-4" />
+                        Task: {app.task.status.replace('_', ' ')}
+                      </span>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-8">
-              <Briefcase className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-600">No applications yet</p>
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Briefcase className="h-8 w-8 text-slate-400" />
+              </div>
+              <p className="font-semibold text-slate-900">No applications yet</p>
+              <p className="text-slate-500 mt-1">Start applying to jobs to see them here</p>
               <Link to="/dashboard/jobs" className="inline-block mt-4">
-                <Button>Browse Jobs</Button>
+                <Button>
+                  <Briefcase className="h-4 w-4" />
+                  Browse Jobs
+                </Button>
               </Link>
             </div>
           )}
