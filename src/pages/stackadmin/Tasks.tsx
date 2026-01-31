@@ -20,6 +20,10 @@ import {
   Mail,
   Calendar,
   AlertCircle,
+  Github,
+  Globe,
+  Video,
+  ExternalLink,
 } from 'lucide-react';
 
 export function StackAdminTasks() {
@@ -27,6 +31,9 @@ export function StackAdminTasks() {
   const { applications, jobs, stacks, updateApplication } = useSite();
   const [selectedTask, setSelectedTask] = useState<{ app: Application; task: Task } | null>(null);
   const [feedback, setFeedback] = useState('');
+
+  // Check permissions
+  const canReviewTasks = user?.permissions?.canReviewTasks ?? true;
 
   // Filter to only show tasks for assigned stacks
   const assignedStackIds = user?.assignedStacks || ['stack-1', 'stack-2'];
@@ -51,7 +58,7 @@ export function StackAdminTasks() {
   );
 
   const handleApprove = () => {
-    if (!selectedTask) return;
+    if (!selectedTask || !canReviewTasks) return;
 
     const updatedTask: Task = {
       ...selectedTask.task,
@@ -69,7 +76,7 @@ export function StackAdminTasks() {
   };
 
   const handleReject = () => {
-    if (!selectedTask) return;
+    if (!selectedTask || !canReviewTasks) return;
 
     const updatedTask: Task = {
       ...selectedTask.task,
@@ -167,25 +174,58 @@ export function StackAdminTasks() {
             </div>
 
             {/* Submission Details */}
-            {task.submissionFileName && (
-              <div className="mt-3 p-3 bg-sky-50 rounded-xl border border-sky-100">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-sky-600" />
-                    <span className="font-medium text-slate-800">{task.submissionFileName}</span>
-                  </div>
-                  <Button variant="ghost" size="sm">
-                    <Download className="h-4 w-4" />
-                    Download
-                  </Button>
-                </div>
-                {task.submissionNotes && (
-                  <div className="mt-2 pt-2 border-t border-sky-100">
-                    <p className="text-sm text-slate-600">
-                      <strong className="text-slate-700">Notes:</strong> {task.submissionNotes}
-                    </p>
+            {task.submission && (
+              <div className="mt-3 p-3 bg-sky-50 rounded-xl border border-sky-100 space-y-2">
+                {task.submission.fileName && (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-sky-600" />
+                      <span className="font-medium text-slate-800">{task.submission.fileName}</span>
+                    </div>
+                    <Button variant="ghost" size="sm">
+                      <Download className="h-4 w-4" />
+                      Download
+                    </Button>
                   </div>
                 )}
+                {task.submission.githubLink && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Github className="h-4 w-4 text-slate-400" />
+                    <a href={task.submission.githubLink} target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline flex items-center gap-1">
+                      GitHub Repository <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
+                )}
+                {task.submission.liveDemoLink && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Globe className="h-4 w-4 text-slate-400" />
+                    <a href={task.submission.liveDemoLink} target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline flex items-center gap-1">
+                      Live Demo <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
+                )}
+                {task.submission.figmaLink && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Palette className="h-4 w-4 text-slate-400" />
+                    <a href={task.submission.figmaLink} target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline flex items-center gap-1">
+                      Figma Design <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
+                )}
+                {task.submission.projectVideoUrl && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Video className="h-4 w-4 text-slate-400" />
+                    <a href={task.submission.projectVideoUrl} target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline flex items-center gap-1">
+                      Video Walkthrough <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {task.submissionNotes && (
+              <div className="mt-2 p-2 bg-slate-50 rounded-lg text-sm text-slate-600">
+                <strong>Notes:</strong> {task.submissionNotes}
               </div>
             )}
 
@@ -199,7 +239,7 @@ export function StackAdminTasks() {
                 <Eye className="h-4 w-4" />
                 View Details
               </Button>
-              {showReviewButton && task.status === 'submitted' && (
+              {showReviewButton && task.status === 'submitted' && canReviewTasks && (
                 <>
                   <Button
                     variant="success"
@@ -226,6 +266,16 @@ export function StackAdminTasks() {
         <h1 className="text-2xl font-bold text-slate-900">Task Management</h1>
         <p className="text-slate-600">Review submitted tasks from applicants</p>
       </div>
+
+      {/* Permission notice */}
+      {!canReviewTasks && (
+        <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
+          <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
+          <p className="text-sm text-amber-800">
+            You do not have permission to review tasks. Contact your administrator.
+          </p>
+        </div>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -415,28 +465,56 @@ export function StackAdminTasks() {
               </div>
 
               {/* Submission */}
-              {selectedTask.task.submissionFileName && (
+              {selectedTask.task.submission && (
                 <div className="p-4 bg-sky-50 rounded-xl border border-sky-200">
                   <h4 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
                     <FileText className="h-5 w-5 text-sky-600" />
                     Submission
                   </h4>
-                  <div className="flex items-center justify-between p-3 bg-white rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-sky-100 flex items-center justify-center">
-                        <FileText className="h-5 w-5 text-sky-600" />
+                  <div className="space-y-3">
+                    {selectedTask.task.submission.fileName && (
+                      <div className="flex items-center justify-between p-3 bg-white rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-sky-100 flex items-center justify-center">
+                            <FileText className="h-5 w-5 text-sky-600" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-slate-900">{selectedTask.task.submission.fileName}</p>
+                            <p className="text-sm text-slate-500">
+                              Submitted {selectedTask.task.submittedAt ? new Date(selectedTask.task.submittedAt).toLocaleDateString() : 'N/A'}
+                            </p>
+                          </div>
+                        </div>
+                        <Button variant="outline" size="sm">
+                          <Download className="h-4 w-4" />
+                          Download
+                        </Button>
                       </div>
-                      <div>
-                        <p className="font-medium text-slate-900">{selectedTask.task.submissionFileName}</p>
-                        <p className="text-sm text-slate-500">
-                          Submitted {selectedTask.task.submittedAt ? new Date(selectedTask.task.submittedAt).toLocaleDateString() : 'N/A'}
-                        </p>
-                      </div>
-                    </div>
-                    <Button variant="outline" size="sm">
-                      <Download className="h-4 w-4" />
-                      Download
-                    </Button>
+                    )}
+                    
+                    {selectedTask.task.submission.githubLink && (
+                      <a href={selectedTask.task.submission.githubLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-3 bg-white rounded-lg hover:bg-slate-50">
+                        <Github className="h-5 w-5 text-slate-600" />
+                        <span className="text-sky-600">{selectedTask.task.submission.githubLink}</span>
+                        <ExternalLink className="h-4 w-4 text-slate-400 ml-auto" />
+                      </a>
+                    )}
+
+                    {selectedTask.task.submission.liveDemoLink && (
+                      <a href={selectedTask.task.submission.liveDemoLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-3 bg-white rounded-lg hover:bg-slate-50">
+                        <Globe className="h-5 w-5 text-slate-600" />
+                        <span className="text-sky-600">{selectedTask.task.submission.liveDemoLink}</span>
+                        <ExternalLink className="h-4 w-4 text-slate-400 ml-auto" />
+                      </a>
+                    )}
+
+                    {selectedTask.task.submission.figmaLink && (
+                      <a href={selectedTask.task.submission.figmaLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-3 bg-white rounded-lg hover:bg-slate-50">
+                        <Palette className="h-5 w-5 text-slate-600" />
+                        <span className="text-sky-600">Figma Design</span>
+                        <ExternalLink className="h-4 w-4 text-slate-400 ml-auto" />
+                      </a>
+                    )}
                   </div>
 
                   {selectedTask.task.submissionNotes && (
@@ -449,7 +527,7 @@ export function StackAdminTasks() {
               )}
 
               {/* Review Actions */}
-              {selectedTask.task.status === 'submitted' && (
+              {selectedTask.task.status === 'submitted' && canReviewTasks && (
                 <>
                   <Textarea
                     label="Feedback for Applicant"

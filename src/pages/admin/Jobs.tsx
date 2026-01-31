@@ -6,13 +6,14 @@ import { Button } from '@/components/ui/Button';
 import { Input, Textarea, Select } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { Badge } from '@/components/ui/Badge';
-import type { Job, JobType, JobStatus } from '@/types';
-import { Plus, Edit2, Trash2, Briefcase, MapPin, Users, Eye, EyeOff } from 'lucide-react';
+import type { Job, JobType, JobStatus, SubmissionField, SubmissionFieldType } from '@/types';
+import { Plus, Edit2, Trash2, Briefcase, MapPin, Users, Eye, EyeOff, FileText, ChevronRight } from 'lucide-react';
 
 export function AdminJobs() {
-  const { jobs, stacks, addJob, updateJob, deleteJob } = useSite();
+  const { jobs, stacks, applications, addJob, updateJob, deleteJob } = useSite();
   const { user } = useAuth();
   const [showModal, setShowModal] = useState(false);
+  const [showApplicantsModal, setShowApplicantsModal] = useState<Job | null>(null);
   const [editingJob, setEditingJob] = useState<Job | null>(null);
   const [filter, setFilter] = useState({ stack: '', status: '', type: '' });
 
@@ -29,6 +30,7 @@ export function AdminJobs() {
     status: 'active' as JobStatus,
     taskDeadlineDays: 5,
     autoAssignTask: false,
+    submissionFields: [] as SubmissionField[],
   });
 
   const filteredJobs = jobs.filter((job) => {
@@ -37,6 +39,14 @@ export function AdminJobs() {
     if (filter.type && job.type !== filter.type) return false;
     return true;
   });
+
+  const submissionFieldOptions: { type: SubmissionFieldType; label: string; description: string }[] = [
+    { type: 'github_link', label: 'GitHub Repository', description: 'Link to source code' },
+    { type: 'live_demo_link', label: 'Live Demo URL', description: 'Deployed project link' },
+    { type: 'figma_link', label: 'Figma Design', description: 'Design file link' },
+    { type: 'project_video', label: 'Project Video', description: 'Video walkthrough' },
+    { type: 'file_upload', label: 'File Upload', description: 'Upload project files' },
+  ];
 
   const handleOpenModal = (job?: Job) => {
     if (job) {
@@ -54,6 +64,7 @@ export function AdminJobs() {
         status: job.status,
         taskDeadlineDays: job.taskDeadlineDays,
         autoAssignTask: job.autoAssignTask,
+        submissionFields: job.submissionFields || [],
       });
     } else {
       setEditingJob(null);
@@ -70,6 +81,7 @@ export function AdminJobs() {
         status: 'active',
         taskDeadlineDays: 5,
         autoAssignTask: false,
+        submissionFields: [],
       });
     }
     setShowModal(true);
@@ -101,6 +113,26 @@ export function AdminJobs() {
 
   const toggleJobStatus = (job: Job) => {
     updateJob(job.id, { status: job.status === 'active' ? 'paused' : 'active' });
+  };
+
+  const toggleSubmissionField = (fieldType: SubmissionFieldType, label: string) => {
+    const exists = formData.submissionFields.find(f => f.type === fieldType);
+    if (exists) {
+      setFormData({
+        ...formData,
+        submissionFields: formData.submissionFields.filter(f => f.type !== fieldType),
+      });
+    } else {
+      setFormData({
+        ...formData,
+        submissionFields: [...formData.submissionFields, { type: fieldType, label, required: true }],
+      });
+    }
+  };
+
+  // Get applications for a specific job
+  const getJobApplications = (jobId: string) => {
+    return applications.filter(app => app.jobId === jobId);
   };
 
   return (
@@ -161,6 +193,8 @@ export function AdminJobs() {
       <div className="space-y-4">
         {filteredJobs.map((job) => {
           const stack = stacks.find((s) => s.id === job.stackId);
+          const jobApps = getJobApplications(job.id);
+          
           return (
             <Card key={job.id}>
               <CardContent className="p-6">
@@ -178,7 +212,7 @@ export function AdminJobs() {
                         <Badge variant={job.status === 'active' ? 'success' : job.status === 'paused' ? 'warning' : 'default'}>
                           {job.status}
                         </Badge>
-                        <Badge variant={job.type === 'developer' ? 'info' : 'warning'}>
+                        <Badge variant={job.type === 'developer' ? 'info' : 'purple'}>
                           {job.type}
                         </Badge>
                       </div>
@@ -194,9 +228,35 @@ export function AdminJobs() {
                         </span>
                         <span>Task deadline: {job.taskDeadlineDays} days</span>
                       </div>
+                      {/* Submission Fields */}
+                      {job.submissionFields && job.submissionFields.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          <span className="text-xs text-slate-500">Required:</span>
+                          {job.submissionFields.map((field, i) => (
+                            <span key={i} className="text-xs px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded">
+                              {field.label}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    {/* View Applicants Button */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowApplicantsModal(job)}
+                      className="relative"
+                    >
+                      <FileText className="h-4 w-4" />
+                      Applicants
+                      {jobApps.length > 0 && (
+                        <span className="absolute -top-2 -right-2 w-5 h-5 bg-sky-600 text-white text-xs rounded-full flex items-center justify-center">
+                          {jobApps.length}
+                        </span>
+                      )}
+                    </Button>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -337,6 +397,44 @@ export function AdminJobs() {
             />
           </div>
 
+          {/* Submission Fields Configuration */}
+          <div className="p-4 bg-slate-50 rounded-xl">
+            <label className="block text-sm font-semibold text-slate-700 mb-3">
+              Task Submission Requirements
+            </label>
+            <p className="text-sm text-slate-500 mb-4">
+              Select which fields applicants must provide when submitting their task
+            </p>
+            <div className="grid md:grid-cols-2 gap-2">
+              {submissionFieldOptions.map((field) => {
+                const isSelected = formData.submissionFields.some(f => f.type === field.type);
+                return (
+                  <button
+                    key={field.type}
+                    type="button"
+                    onClick={() => toggleSubmissionField(field.type, field.label)}
+                    className={`flex items-start gap-3 p-3 rounded-lg border-2 text-left transition-all ${
+                      isSelected
+                        ? 'border-sky-500 bg-sky-50'
+                        : 'border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => {}}
+                      className="mt-0.5 h-4 w-4 rounded border-slate-300 text-sky-600"
+                    />
+                    <div>
+                      <p className="font-medium text-slate-900">{field.label}</p>
+                      <p className="text-xs text-slate-500">{field.description}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -359,6 +457,81 @@ export function AdminJobs() {
             </Button>
           </div>
         </div>
+      </Modal>
+
+      {/* View Applicants Modal */}
+      <Modal
+        isOpen={!!showApplicantsModal}
+        onClose={() => setShowApplicantsModal(null)}
+        title={`Applicants for ${showApplicantsModal?.title}`}
+        size="lg"
+      >
+        {showApplicantsModal && (() => {
+          const jobApps = getJobApplications(showApplicantsModal.id);
+          
+          return (
+            <div className="space-y-4">
+              <div className="p-4 bg-slate-50 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-10 h-10 rounded-lg flex items-center justify-center text-lg"
+                    style={{ backgroundColor: `${stacks.find(s => s.id === showApplicantsModal.stackId)?.color}20` }}
+                  >
+                    {stacks.find(s => s.id === showApplicantsModal.stackId)?.icon}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-slate-900">{showApplicantsModal.title}</p>
+                    <p className="text-sm text-slate-600">{showApplicantsModal.stackName} • {jobApps.length} applicants</p>
+                  </div>
+                </div>
+              </div>
+
+              {jobApps.length > 0 ? (
+                <div className="space-y-3">
+                  {jobApps.map((app) => (
+                    <div key={app.id} className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl hover:bg-slate-50">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center text-white font-semibold">
+                          {app.userName.charAt(0)}
+                        </div>
+                        <div>
+                          <p className="font-medium text-slate-900">{app.userName}</p>
+                          <p className="text-sm text-slate-500">{app.userEmail}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Badge
+                          variant={
+                            app.status === 'hired' ? 'success' :
+                            app.status === 'rejected' ? 'danger' :
+                            app.status === 'potential' ? 'purple' :
+                            'info'
+                          }
+                        >
+                          {app.status.replace(/_/g, ' ')}
+                        </Badge>
+                        <Button variant="ghost" size="sm">
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <FileText className="h-10 w-10 text-slate-300 mx-auto mb-2" />
+                  <p className="text-slate-500">No applicants yet</p>
+                </div>
+              )}
+
+              <div className="flex justify-end pt-4 border-t">
+                <Button variant="outline" onClick={() => setShowApplicantsModal(null)}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          );
+        })()}
       </Modal>
     </div>
   );

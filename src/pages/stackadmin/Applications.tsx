@@ -3,11 +3,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSite } from '@/contexts/SiteContext';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Input, Select, Textarea } from '@/components/ui/Input';
+import { Select, Textarea } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { Badge } from '@/components/ui/Badge';
 import { ApplicationPipeline } from '@/components/ApplicationPipeline';
-import type { Application, ApplicationStatus, Task } from '@/types';
+import type { Application, InternalApplicationStatus, Task, SubmissionField } from '@/types';
 import { FileText, Mail, Download, Send, Eye, Clock } from 'lucide-react';
 
 export function StackAdminApplications() {
@@ -23,6 +23,10 @@ export function StackAdminApplications() {
     deadlineDays: 5,
   });
 
+  // Check permissions
+  const canChangeStatus = user?.permissions?.canChangeApplicationStatus ?? true;
+  const canSendTasks = user?.permissions?.canSendTasks ?? true;
+
   // Filter to only show applications for assigned stacks
   const assignedStackIds = user?.assignedStacks || ['stack-1', 'stack-2'];
   const myApplications = applications.filter((a) => {
@@ -34,16 +38,26 @@ export function StackAdminApplications() {
     ? myApplications.filter((a) => a.status === filter)
     : myApplications;
 
-  const handleStatusChange = (appId: string, status: ApplicationStatus) => {
+  const handleStatusChange = (appId: string, status: InternalApplicationStatus) => {
+    if (!canChangeStatus) {
+      alert('You do not have permission to change application status');
+      return;
+    }
     updateApplication(appId, { status });
   };
 
   const handleSendTask = () => {
-    if (!selectedApp) return;
+    if (!selectedApp || !canSendTasks) return;
 
     const job = jobs.find((j) => j.id === selectedApp.jobId);
     const deadline = new Date();
     deadline.setDate(deadline.getDate() + taskForm.deadlineDays);
+
+    // Get submission fields from job or use defaults
+    const requiredFields: SubmissionField[] = job?.submissionFields || [
+      { type: 'github_link', label: 'GitHub Repository', required: true },
+      { type: 'file_upload', label: 'Project Files', required: false },
+    ];
 
     const task: Task = {
       id: `task-${Date.now()}`,
@@ -52,6 +66,7 @@ export function StackAdminApplications() {
       title: taskForm.title,
       description: taskForm.description,
       requirements: taskForm.requirements.split('\n').filter(Boolean),
+      requiredFields,
       deadline: deadline.toISOString(),
       deadlineDays: taskForm.deadlineDays,
       sentAt: new Date().toISOString(),
@@ -71,6 +86,17 @@ export function StackAdminApplications() {
         <p className="text-gray-600">Review applications for your stacks</p>
       </div>
 
+      {/* Permission notice */}
+      {(!canChangeStatus || !canSendTasks) && (
+        <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
+          <p className="text-sm text-amber-800">
+            <strong>Limited permissions:</strong>
+            {!canChangeStatus && ' You cannot change application statuses.'}
+            {!canSendTasks && ' You cannot send tasks.'}
+          </p>
+        </div>
+      )}
+
       {/* Filter */}
       <Card>
         <CardContent className="p-4">
@@ -79,7 +105,8 @@ export function StackAdminApplications() {
               options={[
                 { value: '', label: 'All Statuses' },
                 { value: 'applied', label: 'Applied' },
-                { value: 'reviewing', label: 'Reviewing' },
+                { value: 'screening', label: 'Screening' },
+                { value: 'potential', label: 'Potential' },
                 { value: 'task_sent', label: 'Task Sent' },
                 { value: 'task_submitted', label: 'Task Submitted' },
                 { value: 'interview', label: 'Interview' },
@@ -113,7 +140,7 @@ export function StackAdminApplications() {
                           : 'info'
                       }
                     >
-                      {app.status.replace('_', ' ')}
+                      {app.status.replace(/_/g, ' ')}
                     </Badge>
                   </div>
                   <p className="text-gray-600">{app.jobTitle}</p>
@@ -148,7 +175,7 @@ export function StackAdminApplications() {
                     <Download className="h-4 w-4" />
                     CV
                   </Button>
-                  {!app.task && app.status !== 'rejected' && app.status !== 'hired' && (
+                  {!app.task && app.status !== 'rejected' && app.status !== 'hired' && canSendTasks && (
                     <Button
                       size="sm"
                       onClick={() => {
@@ -198,7 +225,7 @@ export function StackAdminApplications() {
 
             <div>
               <p className="text-sm text-gray-500 mb-2">Status</p>
-              <ApplicationPipeline status={selectedApp.status} />
+              <ApplicationPipeline status={selectedApp.status} isAdmin={true} />
             </div>
 
             {selectedApp.coverLetter && (
@@ -209,23 +236,28 @@ export function StackAdminApplications() {
             )}
 
             <div className="flex justify-between border-t pt-4">
-              <Select
-                options={[
-                  { value: 'applied', label: 'Applied' },
-                  { value: 'reviewing', label: 'Reviewing' },
-                  { value: 'task_sent', label: 'Task Sent' },
-                  { value: 'task_submitted', label: 'Task Submitted' },
-                  { value: 'interview', label: 'Interview' },
-                  { value: 'offered', label: 'Offered' },
-                  { value: 'hired', label: 'Hired' },
-                  { value: 'rejected', label: 'Rejected' },
-                ]}
-                value={selectedApp.status}
-                onChange={(e) => {
-                  handleStatusChange(selectedApp.id, e.target.value as ApplicationStatus);
-                  setSelectedApp({ ...selectedApp, status: e.target.value as ApplicationStatus });
-                }}
-              />
+              {canChangeStatus ? (
+                <Select
+                  options={[
+                    { value: 'applied', label: 'Applied' },
+                    { value: 'screening', label: 'Screening' },
+                    { value: 'potential', label: 'Potential' },
+                    { value: 'task_sent', label: 'Task Sent' },
+                    { value: 'task_submitted', label: 'Task Submitted' },
+                    { value: 'interview', label: 'Interview' },
+                    { value: 'offered', label: 'Offered' },
+                    { value: 'hired', label: 'Hired' },
+                    { value: 'rejected', label: 'Rejected' },
+                  ]}
+                  value={selectedApp.status}
+                  onChange={(e) => {
+                    handleStatusChange(selectedApp.id, e.target.value as InternalApplicationStatus);
+                    setSelectedApp({ ...selectedApp, status: e.target.value as InternalApplicationStatus });
+                  }}
+                />
+              ) : (
+                <p className="text-sm text-amber-600">You don't have permission to change status</p>
+              )}
               <Button variant="outline" onClick={() => setSelectedApp(null)}>
                 Close
               </Button>
@@ -249,8 +281,9 @@ export function StackAdminApplications() {
             Sending task to <strong>{selectedApp?.userName}</strong>
           </p>
 
-          <Input
-            label="Task Title"
+          <input
+            className="w-full px-4 py-2.5 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
+            placeholder="Task Title"
             value={taskForm.title}
             onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
           />
@@ -269,9 +302,10 @@ export function StackAdminApplications() {
             onChange={(e) => setTaskForm({ ...taskForm, requirements: e.target.value })}
           />
 
-          <Input
-            label="Deadline (days)"
+          <input
             type="number"
+            className="w-full px-4 py-2.5 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
+            placeholder="Deadline (days)"
             min={1}
             max={30}
             value={taskForm.deadlineDays}

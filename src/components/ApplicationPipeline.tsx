@@ -1,49 +1,107 @@
 import { cn } from '@/utils/cn';
-import type { ApplicationStatus } from '@/types';
-import { Check, Clock, FileText, MessageSquare, ThumbsUp, X, Award, Send, Sparkles } from 'lucide-react';
+import type { InternalApplicationStatus, ExternalApplicationStatus } from '@/types';
+import { STATUS_DISPLAY_MAP } from '@/types';
+import { Check, Clock, FileText, MessageSquare, ThumbsUp, X, Award, Send, Sparkles, Eye } from 'lucide-react';
 
 interface PipelineProps {
-  status: ApplicationStatus;
+  status: InternalApplicationStatus;
   compact?: boolean;
+  isAdmin?: boolean; // Show internal statuses for admin
 }
 
-const stages: { key: ApplicationStatus; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+// Stages that job seekers see
+const seekerStages: { key: ExternalApplicationStatus; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { key: 'pending', label: 'Applied', icon: Send },
+  { key: 'in_review', label: 'In Review', icon: Eye },
+  { key: 'task_assigned', label: 'Task', icon: FileText },
+  { key: 'task_submitted', label: 'Submitted', icon: Check },
+  { key: 'waiting', label: 'In Progress', icon: Clock },
+  { key: 'hired', label: 'Result', icon: Award },
+];
+
+// Stages that admins see (more detailed)
+const adminStages: { key: InternalApplicationStatus; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { key: 'applied', label: 'Applied', icon: Send },
-  { key: 'reviewing', label: 'Reviewing', icon: Clock },
+  { key: 'screening', label: 'Screening', icon: Eye },
+  { key: 'potential', label: 'Potential', icon: ThumbsUp },
   { key: 'task_sent', label: 'Task Sent', icon: FileText },
   { key: 'task_submitted', label: 'Submitted', icon: Check },
-  { key: 'task_reviewing', label: 'Task Review', icon: MessageSquare },
+  { key: 'task_reviewing', label: 'Reviewing', icon: MessageSquare },
+  { key: 'forwarded_to_hr', label: 'HR Review', icon: MessageSquare },
   { key: 'interview', label: 'Interview', icon: MessageSquare },
   { key: 'offered', label: 'Offered', icon: ThumbsUp },
   { key: 'hired', label: 'Hired', icon: Award },
 ];
 
-const rejectedStage = { key: 'rejected' as ApplicationStatus, label: 'Rejected', icon: X };
-
-export function ApplicationPipeline({ status, compact = false }: PipelineProps) {
+export function ApplicationPipeline({ status, compact = false, isAdmin = false }: PipelineProps) {
   const isRejected = status === 'rejected';
-  const currentIndex = stages.findIndex((s) => s.key === status);
+  const isHired = status === 'hired';
+
+  // Get display info for job seekers
+  const displayInfo = STATUS_DISPLAY_MAP[status];
 
   if (compact) {
-    const currentStage = isRejected ? rejectedStage : stages.find((s) => s.key === status) || stages[0];
-    const Icon = currentStage.icon;
-    
+    if (isAdmin) {
+      // Admin sees internal status
+      return (
+        <div
+          className={cn(
+            'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold',
+            isRejected 
+              ? 'bg-red-50 text-red-700 border border-red-200' 
+              : isHired 
+              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+              : status === 'potential'
+              ? 'bg-violet-50 text-violet-700 border border-violet-200'
+              : status === 'potentially_rejected'
+              ? 'bg-orange-50 text-orange-700 border border-orange-200'
+              : status === 'forwarded_to_hr'
+              ? 'bg-purple-50 text-purple-700 border border-purple-200'
+              : 'bg-sky-50 text-sky-700 border border-sky-200'
+          )}
+        >
+          {status.replace(/_/g, ' ')}
+        </div>
+      );
+    }
+
+    // Job seeker sees simplified status
     return (
       <div
         className={cn(
           'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold',
-          isRejected 
-            ? 'bg-red-50 text-red-700 border border-red-200' 
-            : status === 'hired' 
-            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+          displayInfo.color === 'red'
+            ? 'bg-red-50 text-red-700 border border-red-200'
+            : displayInfo.color === 'emerald'
+            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+            : displayInfo.color === 'amber'
+            ? 'bg-amber-50 text-amber-700 border border-amber-200'
+            : displayInfo.color === 'indigo'
+            ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+            : displayInfo.color === 'purple'
+            ? 'bg-purple-50 text-purple-700 border border-purple-200'
             : 'bg-sky-50 text-sky-700 border border-sky-200'
         )}
       >
-        <Icon className="h-3.5 w-3.5" />
-        {currentStage.label}
+        {displayInfo.label}
       </div>
     );
   }
+
+  // Full pipeline view
+  const stages = isAdmin ? adminStages : seekerStages;
+  
+  // For seekers, convert internal status to external
+  const currentExternalStatus = displayInfo.external;
+  
+  const getCurrentIndex = () => {
+    if (isAdmin) {
+      return adminStages.findIndex((s) => s.key === status);
+    }
+    return seekerStages.findIndex((s) => s.key === currentExternalStatus);
+  };
+
+  const currentIndex = getCurrentIndex();
 
   return (
     <div className="w-full">
@@ -54,8 +112,13 @@ export function ApplicationPipeline({ status, compact = false }: PipelineProps) 
         {/* Progress bar fill */}
         {!isRejected && (
           <div
-            className="absolute top-5 left-0 h-1.5 bg-gradient-to-r from-sky-500 to-indigo-600 rounded-full transition-all duration-700 ease-out"
-            style={{ width: `${(currentIndex / (stages.length - 1)) * 100}%` }}
+            className={cn(
+              "absolute top-5 left-0 h-1.5 rounded-full transition-all duration-700 ease-out",
+              isHired 
+                ? "bg-gradient-to-r from-emerald-500 to-teal-600"
+                : "bg-gradient-to-r from-sky-500 to-indigo-600"
+            )}
+            style={{ width: `${Math.max(0, (currentIndex / (stages.length - 1)) * 100)}%` }}
           />
         )}
 
@@ -76,7 +139,9 @@ export function ApplicationPipeline({ status, compact = false }: PipelineProps) 
                   className={cn(
                     'w-11 h-11 rounded-xl flex items-center justify-center border-2 transition-all duration-300',
                     isCompleted
-                      ? 'bg-gradient-to-br from-sky-500 to-indigo-600 border-transparent text-white shadow-lg shadow-sky-500/30'
+                      ? isHired && index === stages.length - 1
+                        ? 'bg-gradient-to-br from-emerald-500 to-teal-600 border-transparent text-white shadow-lg shadow-emerald-500/30'
+                        : 'bg-gradient-to-br from-sky-500 to-indigo-600 border-transparent text-white shadow-lg shadow-sky-500/30'
                       : 'bg-white border-slate-200 text-slate-400'
                   )}
                 >
@@ -103,7 +168,20 @@ export function ApplicationPipeline({ status, compact = false }: PipelineProps) 
         <div className="mt-6 p-4 bg-red-50 rounded-xl border border-red-200">
           <div className="flex items-center gap-2 text-red-700">
             <X className="h-5 w-5" />
-            <span className="font-semibold">Application Rejected</span>
+            <span className="font-semibold">
+              {isAdmin ? 'Application Rejected' : 'Thank you for applying. We have decided to move forward with other candidates.'}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {isHired && !isRejected && (
+        <div className="mt-6 p-4 bg-emerald-50 rounded-xl border border-emerald-200">
+          <div className="flex items-center gap-2 text-emerald-700">
+            <Award className="h-5 w-5" />
+            <span className="font-semibold">
+              {isAdmin ? 'Candidate Hired!' : 'Congratulations! You have been selected for this position!'}
+            </span>
           </div>
         </div>
       )}

@@ -6,7 +6,19 @@ import type {
   Application,
   SiteSettings,
   AdminInvite,
+  StackAdminPermissions,
 } from '@/types';
+
+// Default permissions for stack admins
+export const defaultStackAdminPermissions: StackAdminPermissions = {
+  canPostJobs: true,
+  canEditJobs: true,
+  canDeleteJobs: false,
+  canChangeApplicationStatus: true,
+  canSendTasks: true,
+  canReviewTasks: true,
+  canViewApplicantDetails: true,
+};
 
 // Site Settings
 export const siteSettings: SiteSettings = {
@@ -113,6 +125,11 @@ export const jobs: Job[] = [
     status: 'active',
     taskDeadlineDays: 5,
     autoAssignTask: true,
+    submissionFields: [
+      { type: 'github_link', label: 'GitHub Repository', required: true },
+      { type: 'live_demo_link', label: 'Live Demo URL', required: true },
+      { type: 'project_video', label: 'Video Walkthrough', required: false },
+    ],
     createdAt: '2024-02-01',
     createdBy: 'admin-1',
     applicantCount: 24,
@@ -144,6 +161,10 @@ export const jobs: Job[] = [
     status: 'active',
     taskDeadlineDays: 7,
     autoAssignTask: false,
+    submissionFields: [
+      { type: 'github_link', label: 'GitHub Repository', required: true },
+      { type: 'file_upload', label: 'Project Files', required: false },
+    ],
     createdAt: '2024-02-05',
     createdBy: 'admin-2',
     applicantCount: 18,
@@ -175,6 +196,11 @@ export const jobs: Job[] = [
     status: 'active',
     taskDeadlineDays: 4,
     autoAssignTask: true,
+    submissionFields: [
+      { type: 'figma_link', label: 'Figma Design File', required: true },
+      { type: 'project_video', label: 'Design Walkthrough Video', required: true },
+      { type: 'file_upload', label: 'Asset Files', required: false },
+    ],
     createdAt: '2024-02-10',
     createdBy: 'admin-1',
     applicantCount: 32,
@@ -206,6 +232,10 @@ export const jobs: Job[] = [
     status: 'active',
     taskDeadlineDays: 6,
     autoAssignTask: true,
+    submissionFields: [
+      { type: 'github_link', label: 'GitHub Repository', required: true },
+      { type: 'live_demo_link', label: 'API Documentation', required: false },
+    ],
     createdAt: '2024-02-12',
     createdBy: 'admin-1',
     applicantCount: 15,
@@ -237,6 +267,10 @@ export const jobs: Job[] = [
     status: 'active',
     taskDeadlineDays: 5,
     autoAssignTask: false,
+    submissionFields: [
+      { type: 'github_link', label: 'GitHub/GitLab Repository', required: true },
+      { type: 'file_upload', label: 'Documentation', required: true },
+    ],
     createdAt: '2024-02-15',
     createdBy: 'admin-1',
     applicantCount: 9,
@@ -260,6 +294,15 @@ export const users: User[] = [
     role: 'stack_admin',
     avatar: 'https://i.pravatar.cc/150?u=admin2',
     assignedStacks: ['stack-2'],
+    permissions: {
+      canPostJobs: true,
+      canEditJobs: true,
+      canDeleteJobs: false,
+      canChangeApplicationStatus: true,
+      canSendTasks: true,
+      canReviewTasks: true,
+      canViewApplicantDetails: true,
+    },
     createdAt: '2024-01-10',
   },
   {
@@ -269,6 +312,15 @@ export const users: User[] = [
     role: 'stack_admin',
     avatar: 'https://i.pravatar.cc/150?u=admin3',
     assignedStacks: ['stack-1'],
+    permissions: {
+      canPostJobs: true,
+      canEditJobs: true,
+      canDeleteJobs: false,
+      canChangeApplicationStatus: false, // Limited permission
+      canSendTasks: true,
+      canReviewTasks: true,
+      canViewApplicantDetails: true,
+    },
     createdAt: '2024-01-12',
   },
 ];
@@ -290,6 +342,9 @@ export const jobSeekers: JobSeekerProfile[] = [
     portfolio: 'https://johndeveloper.com',
     linkedin: 'https://linkedin.com/in/johndeveloper',
     github: 'https://github.com/johndeveloper',
+    googleId: 'google-123456',
+    hasActiveApplication: true,
+    activeApplicationId: 'app-1',
     createdAt: '2024-01-20',
   },
   {
@@ -307,6 +362,9 @@ export const jobSeekers: JobSeekerProfile[] = [
     cvFileName: 'jane-cv.pdf',
     portfolio: 'https://janedesigner.com',
     linkedin: 'https://linkedin.com/in/janedesigner',
+    googleId: 'google-789012',
+    hasActiveApplication: true,
+    activeApplicationId: 'app-2',
     createdAt: '2024-01-22',
   },
 ];
@@ -321,12 +379,15 @@ export const applications: Application[] = [
     userId: 'user-1',
     userName: 'John Developer',
     userEmail: 'john@example.com',
+    userPhone: '+1 234 567 8901',
     cvUrl: '/uploads/cv/john-cv.pdf',
     cvFileName: 'john-cv.pdf',
     coverLetter: 'I am excited to apply for this position...',
     status: 'task_sent',
     appliedAt: '2024-02-20',
     updatedAt: '2024-02-22',
+    adminNotes: 'Strong portfolio, good cultural fit',
+    rating: 4,
     task: {
       id: 'task-1',
       applicationId: 'app-1',
@@ -344,6 +405,10 @@ export const applications: Application[] = [
         'https://react.dev/learn',
         'https://www.typescriptlang.org/docs/',
       ],
+      requiredFields: [
+        { type: 'github_link', label: 'GitHub Repository', required: true },
+        { type: 'live_demo_link', label: 'Live Demo URL', required: true },
+      ],
       deadline: '2024-02-27',
       deadlineDays: 5,
       sentAt: '2024-02-22',
@@ -358,12 +423,15 @@ export const applications: Application[] = [
     userId: 'user-2',
     userName: 'Jane Designer',
     userEmail: 'jane@example.com',
+    userPhone: '+1 234 567 8902',
     cvUrl: '/uploads/cv/jane-cv.pdf',
     cvFileName: 'jane-cv.pdf',
     coverLetter: 'As a passionate designer, I would love to...',
     status: 'task_submitted',
     appliedAt: '2024-02-18',
     updatedAt: '2024-02-25',
+    adminNotes: 'Excellent portfolio, creative approach',
+    rating: 5,
     task: {
       id: 'task-2',
       applicationId: 'app-2',
@@ -380,12 +448,20 @@ export const applications: Application[] = [
       resources: [
         'https://www.figma.com/best-practices/',
       ],
+      requiredFields: [
+        { type: 'figma_link', label: 'Figma Design File', required: true },
+        { type: 'project_video', label: 'Design Walkthrough', required: true },
+      ],
       deadline: '2024-02-24',
       deadlineDays: 4,
       sentAt: '2024-02-20',
       submittedAt: '2024-02-24',
-      submissionUrl: '/uploads/submissions/jane-dashboard.zip',
-      submissionFileName: 'dashboard-design.zip',
+      submission: {
+        figmaLink: 'https://figma.com/file/dashboard-design',
+        projectVideoUrl: 'https://loom.com/share/dashboard-walkthrough',
+        fileUrl: '/uploads/submissions/jane-dashboard.zip',
+        fileName: 'dashboard-design.zip',
+      },
       submissionNotes: 'I have included the Figma file, exported assets, and a brief documentation explaining my design decisions.',
       status: 'submitted',
     },
@@ -398,11 +474,13 @@ export const applications: Application[] = [
     userId: 'user-1',
     userName: 'John Developer',
     userEmail: 'john@example.com',
+    userPhone: '+1 234 567 8901',
     cvUrl: '/uploads/cv/john-cv.pdf',
     cvFileName: 'john-cv.pdf',
-    status: 'reviewing',
+    status: 'screening',
     appliedAt: '2024-02-25',
     updatedAt: '2024-02-25',
+    adminNotes: 'Reviewing application',
   },
 ];
 
@@ -412,6 +490,15 @@ export const adminInvites: AdminInvite[] = [
     id: 'invite-1',
     email: 'newadmin@example.com',
     assignedStacks: ['stack-3', 'stack-5'],
+    permissions: {
+      canPostJobs: true,
+      canEditJobs: true,
+      canDeleteJobs: false,
+      canChangeApplicationStatus: true,
+      canSendTasks: true,
+      canReviewTasks: true,
+      canViewApplicantDetails: true,
+    },
     invitedBy: 'admin-1',
     invitedAt: '2024-02-20',
     status: 'pending',

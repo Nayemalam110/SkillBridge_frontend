@@ -5,9 +5,9 @@ import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
-import { Textarea } from '@/components/ui/Input';
+import { Input, Textarea } from '@/components/ui/Input';
 import { FileUpload } from '@/components/ui/FileUpload';
-import type { Application, Task } from '@/types';
+import type { Application, Task, TaskSubmission } from '@/types';
 import {
   Clock,
   CheckCircle,
@@ -17,6 +17,9 @@ import {
   ExternalLink,
   Code,
   Palette,
+  Github,
+  Video,
+  Globe,
 } from 'lucide-react';
 
 export function SeekerTasks() {
@@ -25,6 +28,7 @@ export function SeekerTasks() {
   const [selectedTask, setSelectedTask] = useState<{ app: Application; task: Task } | null>(null);
   const [submissionFile, setSubmissionFile] = useState<File | null>(null);
   const [submissionNotes, setSubmissionNotes] = useState('');
+  const [submissionData, setSubmissionData] = useState<TaskSubmission>({});
   const [submitting, setSubmitting] = useState(false);
 
   const myApplications = applications.filter((app) => app.userId === user?.id && app.task);
@@ -70,12 +74,17 @@ export function SeekerTasks() {
     setSubmitting(true);
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
+    const submission: TaskSubmission = {
+      ...submissionData,
+      fileUrl: submissionFile ? URL.createObjectURL(submissionFile) : undefined,
+      fileName: submissionFile?.name,
+    };
+
     const updatedTask: Task = {
       ...selectedTask.task,
       status: 'submitted',
       submittedAt: new Date().toISOString(),
-      submissionUrl: submissionFile ? URL.createObjectURL(submissionFile) : undefined,
-      submissionFileName: submissionFile?.name,
+      submission,
       submissionNotes,
     };
 
@@ -88,6 +97,7 @@ export function SeekerTasks() {
     setSelectedTask(null);
     setSubmissionFile(null);
     setSubmissionNotes('');
+    setSubmissionData({});
   };
 
   const pendingTasks = myApplications.filter(
@@ -158,6 +168,20 @@ export function SeekerTasks() {
                             </ul>
                           </div>
                         )}
+
+                        {/* Required Submission Fields */}
+                        {task.requiredFields && task.requiredFields.length > 0 && (
+                          <div className="mt-4 p-3 bg-sky-50 rounded-lg border border-sky-100">
+                            <p className="text-sm font-medium text-sky-800 mb-2">Required for submission:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {task.requiredFields.map((field, i) => (
+                                <span key={i} className="px-2 py-1 bg-white rounded text-sm text-sky-700 border border-sky-200">
+                                  {field.label}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex flex-col gap-2">
@@ -214,10 +238,10 @@ export function SeekerTasks() {
                           </p>
                         )}
                       </div>
-                      {task.submissionFileName && (
+                      {task.submission?.fileName && (
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                           <FileText className="h-4 w-4" />
-                          {task.submissionFileName}
+                          {task.submission.fileName}
                         </div>
                       )}
                     </div>
@@ -242,6 +266,7 @@ export function SeekerTasks() {
           setSelectedTask(null);
           setSubmissionFile(null);
           setSubmissionNotes('');
+          setSubmissionData({});
         }}
         title="Submit Task"
         size="lg"
@@ -267,13 +292,72 @@ export function SeekerTasks() {
               )}
             </div>
 
-            <FileUpload
-              label="Upload Your Submission"
-              accept=".zip,.rar,.pdf,.fig,.sketch,.xd,.psd"
-              value={submissionFile}
-              onChange={setSubmissionFile}
-              helperText="ZIP, RAR, PDF, Figma, Sketch, XD, or PSD files"
-            />
+            {/* Dynamic Submission Fields */}
+            <div className="space-y-4">
+              <h4 className="font-medium text-gray-900">Submission Details</h4>
+              
+              {selectedTask.task.requiredFields?.some(f => f.type === 'github_link') && (
+                <div className="relative">
+                  <Github className="absolute left-3 top-9 h-5 w-5 text-gray-400" />
+                  <Input
+                    label="GitHub Repository URL"
+                    placeholder="https://github.com/username/repo"
+                    value={submissionData.githubLink || ''}
+                    onChange={(e) => setSubmissionData({ ...submissionData, githubLink: e.target.value })}
+                    className="pl-10"
+                  />
+                </div>
+              )}
+
+              {selectedTask.task.requiredFields?.some(f => f.type === 'live_demo_link') && (
+                <div className="relative">
+                  <Globe className="absolute left-3 top-9 h-5 w-5 text-gray-400" />
+                  <Input
+                    label="Live Demo URL"
+                    placeholder="https://your-project.vercel.app"
+                    value={submissionData.liveDemoLink || ''}
+                    onChange={(e) => setSubmissionData({ ...submissionData, liveDemoLink: e.target.value })}
+                    className="pl-10"
+                  />
+                </div>
+              )}
+
+              {selectedTask.task.requiredFields?.some(f => f.type === 'figma_link') && (
+                <div className="relative">
+                  <Palette className="absolute left-3 top-9 h-5 w-5 text-gray-400" />
+                  <Input
+                    label="Figma Design URL"
+                    placeholder="https://figma.com/file/..."
+                    value={submissionData.figmaLink || ''}
+                    onChange={(e) => setSubmissionData({ ...submissionData, figmaLink: e.target.value })}
+                    className="pl-10"
+                  />
+                </div>
+              )}
+
+              {selectedTask.task.requiredFields?.some(f => f.type === 'project_video') && (
+                <div className="relative">
+                  <Video className="absolute left-3 top-9 h-5 w-5 text-gray-400" />
+                  <Input
+                    label="Project Video URL"
+                    placeholder="https://loom.com/share/... or YouTube link"
+                    value={submissionData.projectVideoUrl || ''}
+                    onChange={(e) => setSubmissionData({ ...submissionData, projectVideoUrl: e.target.value })}
+                    className="pl-10"
+                  />
+                </div>
+              )}
+
+              {selectedTask.task.requiredFields?.some(f => f.type === 'file_upload') && (
+                <FileUpload
+                  label="Upload Project Files"
+                  accept=".zip,.rar,.pdf,.fig,.sketch,.xd,.psd"
+                  value={submissionFile}
+                  onChange={setSubmissionFile}
+                  helperText="ZIP, RAR, PDF, Figma, Sketch, XD, or PSD files"
+                />
+              )}
+            </div>
 
             <Textarea
               label="Submission Notes (Optional)"
@@ -290,11 +374,12 @@ export function SeekerTasks() {
                   setSelectedTask(null);
                   setSubmissionFile(null);
                   setSubmissionNotes('');
+                  setSubmissionData({});
                 }}
               >
                 Cancel
               </Button>
-              <Button onClick={handleSubmitTask} loading={submitting} disabled={!submissionFile}>
+              <Button onClick={handleSubmitTask} loading={submitting}>
                 Submit Task
               </Button>
             </div>
